@@ -1,26 +1,27 @@
 {%- comment -%}
-Paste this block immediately BEFORE the arcade page's existing <script> tag.
+  OPTIONAL: adds "Sign in with your store account". The arcade already works without this file
+  (players simply make an arcade-only name), so skip it if you don't need store logins.
 
-Then change the CFG line in the page JavaScript to:
-const CFG={host:'arena.antispier.com',wait:12000,login:'/customer_authentication/login'};
+  WHERE  Paste this block immediately BEFORE the arcade's <script> tag.
+         It only works if the arcade is in a THEME file or a "Custom Liquid" section. If the HTML is
+         pasted into Online Store > Pages > the page's content editor, Liquid does not run there.
 
-The SHOPIFY_SECRET value below must exactly match the SHOPIFY_SECRET environment
-variable configured in Render. Replace the placeholder before publishing. The
-secret is used by Shopify to calculate a signature; only the resulting signature
-is sent to visitors' browsers.
+  SECRET Replace PASTE-YOUR-SECRET-HERE with a long random string, and set the exact same string as
+         SHOPIFY_SECRET in Render (Environment tab). Make one with:
+             python -c "import secrets;print(secrets.token_urlsafe(32))"
+         IMPORTANT: your GitHub repo is public. Keep the placeholder in this file in GitHub and put the
+         real secret only in Shopify and Render. Anyone who learns it can pose as any customer.
+
+  Only the signature this produces is sent to visitors' browsers, never the secret.
 {%- endcomment -%}
-
-{% if customer %}
-  <script>
-    window.ARENA_USER = {
-      id: {{ customer.id | json }},
-      name: {{ customer.first_name | default: customer.email | json }},
-      sig: {{ customer.id | hmac_sha256: 'REPLACE_WITH_A_LONG_RANDOM_SECRET' | json }}
-    };
-  </script>
-{% endif %}
-
 <script>
-  window.ARENA_LOGIN = '/customer_authentication/login?return_to=' + encodeURIComponent(location.pathname + location.search);
-  window.ARENA_LOGOUT = '/account/logout';
+  window.ARENA_LOGIN  = {{ routes.storefront_login_url | json }};
+  window.ARENA_LOGOUT = {{ routes.account_logout_url | json }};
+  {%- if customer %}
+  window.ARENA_USER = {
+    id:   {{ customer.id | append: '' | json }},
+    name: {{ customer.first_name | default: 'Player' | json }},
+    sig:  {{ customer.id | append: '' | hmac_sha256: 'PASTE-YOUR-SECRET-HERE' | json }}
+  };
+  {%- endif %}
 </script>
