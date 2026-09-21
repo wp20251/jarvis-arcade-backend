@@ -3,19 +3,14 @@ Run:  pip install fastapi "uvicorn[standard]"   then   python server.py
 Env:  ALLOWED_ORIGINS=https://f0d829-3.myshopify.com,https://www.your-store.com
                                   (every address your store is opened on, comma-separated; default * for testing)
       ARENA_DB=arena.db           (SQLite file, keep it on a persistent disk)
-      SHOPIFY_SECRET=  (same value as in the theme snippet; turns on "Sign in with your store account")
+      SHOPIFY_SECRET=long-random  (same value as in the theme snippet; turns on "Sign in with your store account")
       BLOCKED_NAMES=word1,word2   (optional: usernames containing any of these are refused)
 """
 import asyncio, hashlib, hmac, json, os, re, secrets, sqlite3, uuid
 from typing import Optional
-from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-
-# Load a local .env for development without replacing variables supplied by the
-# deployment host (Render environment variables take precedence).
-load_dotenv(override=False)
 
 ORIGINS = [o.strip().rstrip("/") for o in os.getenv("ALLOWED_ORIGINS", "*").split(",") if o.strip()] or ["*"]
 SHOP_SECRET = os.getenv("SHOPIFY_SECRET", "").strip()
@@ -32,11 +27,6 @@ RESERVED = {h["name"].lower() for h in HOUSE}
 
 app = FastAPI(title="Jarvis Arcade Backend")
 app.add_middleware(CORSMiddleware, allow_origins=ORIGINS, allow_methods=["*"], allow_headers=["*"])
-
-@app.get("/healthz")
-def healthz():
-    """Health probe used by Render; do not expose configuration or secrets."""
-    return {"ok": True}
 
 db = sqlite3.connect(os.getenv("ARENA_DB", "arena.db"), check_same_thread=False)
 db.executescript("""
@@ -135,6 +125,14 @@ def shopify_login(s: Shop):
             return issue(row[0])
         raise HTTPException(409, "That username is taken")
     return issue(s.username)
+
+@app.get("/")
+def root():
+    return {"ok": True, "service": "Jarvis Arcade backend", "leaderboard": "/api/leaderboard"}
+
+@app.get("/health")
+def health():
+    return {"ok": True}
 
 def board(limit: int = 25):
     rows = [{"name": n, "score": s, "wins": w, "bot": False} for n, s, w in
