@@ -1,27 +1,24 @@
-# Render Blueprint for the Jarvis Arcade backend (FastAPI + WebSockets + SQLite).
-# If your service already exists, compare this with what the Render dashboard shows before you sync it.
 services:
   - type: web
-    name: antispier-arcade          # keep this name: it is what makes the address antispier-arcade.onrender.com
+    name: antispier-arcade
     runtime: python
-    plan: free                      # see the note at the bottom before relying on the free plan
+    plan: starter
     buildCommand: pip install -r requirements.txt
-    startCommand: python server.py  # server.py listens on the PORT that Render provides
+    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /healthz
     envVars:
-      - key: ALLOWED_ORIGINS        # every address your store is opened on, comma-separated, no trailing slash
-        value: https://www.antispier.com,https://antispier.com,https://f0d829-3.myshopify.com
-      - key: SHOPIFY_SECRET         # only needed for "Sign in with your store account"
-        sync: false                 # type the value in the Render dashboard (Environment tab), never in this file
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: ALLOWED_ORIGINS
+        value: https://www.antispier.com,https://antispier.com
       - key: ARENA_DB
-        value: arena.db             # with a paid plan + disk (below) change this to /var/data/arena.db
-      # - key: BLOCKED_NAMES        # optional: usernames containing any of these words are refused
-      #   value: word1,word2
-
-    # ------------------------------------------------------------------------------------------
-    # IMPORTANT: on the FREE plan Render wipes the service's files every time it restarts, redeploys
-    # or goes to sleep (after 15 idle minutes). accounts and leaderboard scores live in that file,
-    # so they disappear with it. To keep them: change plan to `starter`, uncomment the disk below,
-    # and set ARENA_DB to /var/data/arena.db. (A paid instance also never sleeps.)
+        value: /var/data/arena.db
+      - key: SHOPIFY_SECRET
+        sync: false
+    disk:
+      name: arcade-data
+      mountPath: /var/data
+      sizeGB: 1
     # ------------------------------------------------------------------------------------------
     # disk:
     #   name: arena-data
