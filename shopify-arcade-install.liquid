@@ -1,0 +1,26 @@
+{%- comment -%}
+Paste this block immediately BEFORE the arcade page's existing <script> tag.
+
+Then change the CFG line in the page JavaScript to:
+const CFG={host:'arena.antispier.com',wait:12000,login:'/customer_authentication/login'};
+
+The SHOPIFY_SECRET value below must exactly match the SHOPIFY_SECRET environment
+variable configured in Render. Replace the placeholder before publishing. The
+secret is used by Shopify to calculate a signature; only the resulting signature
+is sent to visitors' browsers.
+{%- endcomment -%}
+
+{% if customer %}
+  <script>
+    window.ARENA_USER = {
+      id: {{ customer.id | json }},
+      name: {{ customer.first_name | default: customer.email | json }},
+      sig: {{ customer.id | hmac_sha256: 'REPLACE_WITH_A_LONG_RANDOM_SECRET' | json }}
+    };
+  </script>
+{% endif %}
+
+<script>
+  window.ARENA_LOGIN = '/customer_authentication/login?return_to=' + encodeURIComponent(location.pathname + location.search);
+  window.ARENA_LOGOUT = '/account/logout';
+</script>
